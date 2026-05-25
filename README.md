@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# עודד אמר — Landing Page
 
-## Getting Started
+Production-ready Hebrew RTL landing page for the entertainment brand "עודד אמר" by Oded Manster.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: Next.js 16 (App Router) + TypeScript
+- **Styling**: Tailwind CSS v4 + Heebo font (Hebrew/RTL)
+- **Storage**: Upstash Redis (content + leads CRM) via `@upstash/redis`
+- **File storage**: Vercel Blob for image uploads
+- **Email**: Resend
+- **Spam protection**: Cloudflare Turnstile + honeypot + per-IP rate limiting
+- **Auth**: HMAC-SHA256 signed session cookie (no external auth library)
+- **Proxy/Middleware**: `proxy.ts` (Next.js 16 style)
+
+## Project Structure
+
+```
+app/
+  page.tsx                  # Landing page (server component)
+  layout.tsx                # Root layout — RTL, Heebo font, metadata
+  admin/                    # Password-protected admin area
+    login/page.tsx          # Login form
+    leads/page.tsx          # Leads CRM
+    content/page.tsx        # Content editor
+  api/
+    contact/route.ts        # Lead submission endpoint
+    admin/                  # Protected admin API routes
+components/
+  sections/                 # All landing page sections
+  ui/                       # Shared UI components
+lib/
+  content.ts                # getContent() / setContent()
+  defaultContent.ts         # Full Hebrew content seed data
+  kv.ts                     # Upstash Redis wrapper with in-memory fallback
+  blob.ts                   # Vercel Blob wrapper with dev stub
+  auth.ts                   # Session signing/verification
+  resend.ts                 # Email sender
+  rateLimit.ts              # Per-IP rate limiter
+types/
+  content.ts                # SiteContent + Lead interfaces
+proxy.ts                    # Route protection (Next.js 16 middleware)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Required | Description |
+|---|---|---|
+| `ADMIN_PASSWORD` | Yes | Admin area password |
+| `CONTACT_EMAIL` | For email | Receives lead notification emails |
+| `RESEND_API_KEY` | For email | Get at resend.com |
+| `UPSTASH_REDIS_REST_URL` | For KV | Upstash Redis endpoint |
+| `UPSTASH_REDIS_REST_TOKEN` | For KV | Upstash Redis token |
+| `BLOB_READ_WRITE_TOKEN` | For uploads | Vercel Blob token |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | For spam | Cloudflare Turnstile site key |
+| `TURNSTILE_SECRET_KEY` | For spam | Cloudflare Turnstile secret |
+| `NEXT_PUBLIC_SITE_URL` | For SEO | Full site URL (https://...) |
+| `WEBHOOK_URL` | Optional | Webhook for leads (Make, Zapier, n8n) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Local Development
 
-## Learn More
+```bash
+# 1. Install dependencies
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# 2. Copy env example
+cp .env.local.example .env.local
+# Fill in ADMIN_PASSWORD at minimum
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# 3. Run dev server
+npm run dev
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 4. Open http://localhost:3000
+```
 
-## Deploy on Vercel
+Without Redis/Blob credentials, the app uses in-memory fallbacks — works fully for development.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Admin Area
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Visit `/admin` → redirected to login → enter `ADMIN_PASSWORD`.
+
+- **Leads CRM** (`/admin/leads`): View all form submissions, filter, mark as handled
+- **Content Editor** (`/admin/content`): Edit all Hebrew copy, images, FAQ items
+
+## Content Architecture
+
+All site content is stored as a single JSON object in Redis under key `site:content`. On first load, falls back to `lib/defaultContent.ts`. Update via the admin panel or directly via `PUT /api/admin/content`.
+
+## Spam Protection (3 layers)
+
+1. **Cloudflare Turnstile** — verified server-side on every form submission
+2. **Honeypot field** — invisible to humans; bots fill it and get silently rejected
+3. **Rate limiting** — max 10 submissions/hour per IP (in-memory)
+
+## Webhook Payload
+
+When `WEBHOOK_URL` is set, every lead is POSTed as JSON:
+
+```json
+{
+  "id": "lead_1234567890_abc123",
+  "createdAt": "2024-01-15T10:30:00.000Z",
+  "handled": false,
+  "fullName": "ישראל ישראלי",
+  "phone": "050-0000000",
+  "eventType": "אירוע חברה",
+  "company": "חברה בע\"מ",
+  "email": "israel@example.com",
+  "eventDate": "2024-03-20",
+  "participants": "100",
+  "location": "תל אביב",
+  "packageInterest": "ערב מעודד בלבד",
+  "message": "הודעה חופשית",
+  "source": "אתר"
+}
+```
+
+## Deployment
+
+```bash
+# Build check
+npm run build
+
+# Deploy to Vercel (after vercel CLI login)
+vercel --prod
+
+# Or connect via Vercel dashboard → Import Git Repository
+```
+
+Set all environment variables in Vercel Dashboard → Project → Settings → Environment Variables.

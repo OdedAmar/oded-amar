@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-black: #050505;
+  --color-brand-soft: #101010;
+  --color-brand-turquoise: #29C7C7;
+  --color-brand-turquoise-light: #4FE3DF;
+  --color-brand-gold: #D8B35A;
+  --color-brand-white: #FFFFFF;
+  --color-brand-gray: #D6D6D6;
+
+  --font-heebo: var(--font-heebo);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050505;
+  --foreground: #FFFFFF;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-heebo), Arial, sans-serif;
+  direction: rtl;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  opacity: 0;
+}
+
+.fade-in-up.visible {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.glow-turquoise {
+  box-shadow: 0 0 40px rgba(41, 199, 199, 0.15);
+}
+
+.glow-gold {
+  box-shadow: 0 0 30px rgba(216, 179, 90, 0.15);
+}
+
+.stage-gradient {
+  background: radial-gradient(ellipse at top, rgba(41, 199, 199, 0.08) 0%, transparent 60%);
+}
+
+.hero-gradient {
+  background: radial-gradient(ellipse at 30% 50%, rgba(41, 199, 199, 0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(216, 179, 90, 0.05) 0%, transparent 50%);
+}
+
+.text-gradient-turquoise {
+  background: linear-gradient(135deg, #29C7C7, #4FE3DF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-gradient {
+  border-image: linear-gradient(135deg, #29C7C7, #4FE3DF) 1;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
